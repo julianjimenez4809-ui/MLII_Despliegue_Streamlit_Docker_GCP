@@ -1,7 +1,7 @@
 # Despliegue de Modelos de Machine Learning: Pipeline Supervisado, Contenedorización con Docker y Servicio en Google Cloud Platform
 
 **Asignatura:** Machine Learning II  
-**Programa:** Maestría en Inteligencia Artificial / Maestría en Ciencia de Datos  
+**Programa:** Pregrado en Ciencia de Datos  
 **Modalidad:** Reto Práctico de Ciclo de Vida Completo de Machine Learning  
 
 ---
@@ -49,13 +49,13 @@ A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz
   - `Distinct Called Numbers`: Cantidad de números telefónicos distintos contactados.
 - **Categóricas y Discretas de Baja Cardinalidad:**
   - `Complains`: Presencia de quejas o reclamos formales (0 = No, 1 = Sí).
-  - `Age Group`: Grupo etario del usuario.
+  - `Age Group`: Grupo etario del usuario (5 niveles: 1–5).
   - `Tariff Plan`: Modalidad de plan contratado (1 = Contractual, 2 = Prepago).
   - `Status`: Estado operativo de la línea telefónica.
-  - `Age`: Rango etario reportado.
 
 ### 4.2 Variables Excluidas
 - `Customer Value`: Variable compuesta calculada *a posteriori* a partir de métricas agregadas del uso. Su inclusión en el entrenamiento generaría fuga de datos, ya que no representa una variable observable de manera inmediata en clientes nuevos o en escenarios de intervención temprana.
+- `Age`: Presenta una correspondencia **1:1** con `Age Group` (15→1, 25→2, 30→3, 45→4, 55→5). Mantener ambas variables duplicaría exactamente las mismas columnas one-hot sin aportar información, por lo que se conserva únicamente `Age Group`, que es el agrupamiento interpretable.
 
 ---
 
@@ -85,26 +85,40 @@ Entrada tabular (CSV o Formulario)
 
 Se realizó una comparativa empírica entre el modelo base propuesto en la guía (`LogisticRegression`) y un ensamble de árboles (`RandomForestClassifier`, configurado con 300 estimadores, `min_samples_leaf=5`, `class_weight="balanced"` y `random_state=42`).
 
-### 6.1 Matriz de Confusión (Random Forest en Conjunto de Prueba, N = 630)
+### 6.1 Selección con Validación Cruzada (5-fold estratificada)
+
+Para evitar el sesgo de elegir "el mejor" modelo sobre el propio conjunto de prueba, la selección se hizo con **validación cruzada estratificada de 5 folds** sobre los datos de entrenamiento, reportando la clase positiva (`Churn=1`):
+
+| Métrica (media ± desv., CV) | Regresión Logística (Base) | Random Forest (Seleccionado) |
+|:---|:---:|:---:|
+| **F1 (Clase Churn = 1)** | 0.5672 ± 0.0217 | **0.8406 ± 0.0226** |
+| **Recall (Clase Churn = 1)** | 0.4404 ± 0.0290 | **0.9414 ± 0.0234** |
+| **ROC-AUC** | 0.9354 ± 0.0071 | **0.9824 ± 0.0046** |
+
+El **Random Forest** domina consistentemente en las tres métricas, por lo que fue el modelo seleccionado. El conjunto de prueba se reservó exclusivamente para la evaluación final (sección 6.2), sin participar en la selección.
+
+### 6.2 Matriz de Confusión (Random Forest en Conjunto de Prueba, N = 630)
 
 | Condición Real \ Predicción | Predicho Negativo (0) | Predicho Positivo (1) | Total Real |
 |:---|:---:|:---:|:---:|
-| **Real Negativo (0)** | 502 | 29 | 531 |
+| **Real Negativo (0)** | 505 | 26 | 531 |
 | **Real Positivo (1)** | 4 | 95 | 99 |
 
-### 6.2 Métricas Cuantitativas Comparativas
+### 6.3 Métricas Cuantitativas Comparativas (Conjunto de Prueba)
 
 | Métrica | Regresión Logística (Base) | Random Forest (Seleccionado) |
 |:---|:---:|:---:|
-| **Accuracy Global** | 0.8984 | **0.9476** |
-| **Balanced Accuracy** | 0.7056 | **0.9525** |
+| **Accuracy Global** | 0.8968 | **0.9524** |
+| **Balanced Accuracy** | 0.7046 | **0.9553** |
 | **Recall (Clase Churn = 1)** | 0.4242 | **0.9596** |
-| **Precision (Clase Churn = 1)** | 0.8571 | **0.7661** |
-| **F1-Score Ponderado** | 0.8845 | **0.9499** |
-| **Área Bajo la Curva ROC (AUC)** | 0.9234 | **0.9850** |
+| **Precision (Clase Churn = 1)** | 0.8400 | **0.7851** |
+| **F1 (Clase Churn = 1)** | 0.5638 | **0.8636** |
+| **F1-Score Ponderado** | 0.8821 | **0.9543** |
+| **ROC-AUC** | 0.9252 | **0.9844** |
+| **Precision-Recall (Average Precision)** | 0.7616 | **0.9353** |
 
-### 6.3 Justificación Técnica de la Elección
-Debido a la asimetría en los costos de error asociados al problema de negocio, no identificar a un cliente que efectivamente abandonará el servicio (falso negativo) conlleva la pérdida del valor de vida del cliente (*lifetime value*), mientras que un falso positivo implica únicamente una acción preventiva de contacto. Por consiguiente, el modelo **Random Forest** fue seleccionado por su sobresaliente capacidad de captura (**Recall de 95,96%** frente a 42,42% del modelo lineal) y un balance global superior (**F1 ponderado de 0.9499**).
+### 6.4 Justificación Técnica de la Elección
+Debido a la asimetría en los costos de error asociados al problema de negocio, no identificar a un cliente que efectivamente abandonará el servicio (falso negativo) conlleva la pérdida del valor de vida del cliente (*lifetime value*), mientras que un falso positivo implica únicamente una acción preventiva de contacto. Por consiguiente, el modelo **Random Forest** fue seleccionado por su capacidad de captura (**Recall de 95,96%** frente a 42,42% del modelo lineal) y su **F1 de la clase positiva (0.8636 frente a 0.5638)**. Se reporta el F1 de la clase positiva (no solo el ponderado, dominado por la clase mayoritaria) junto con la precisión-recall (*Average Precision*) para reflejar el desempeño sobre la clase de interés.
 
 ---
 
@@ -120,20 +134,17 @@ El proyecto mantiene una organización modular y desacoplada:
 ├── pdf/
 │   └── guia_completa_ml_streamlit_docker_gcp_colab.pdf # Guía académica del taller
 ├── src/
-│   ├── app.py               # Aplicación interactiva de servicio Streamlit
-│   ├── build_notebook.py    # Generador automatizado del cuaderno unificado
-│   ├── ml_core.py           # Módulo central: inferencia de tipos, pipelines y métricas
-│   └── train.py             # Script de entrenamiento por línea de comandos
+│   └── build_notebook.py    # Generador automatizado del cuaderno unificado
 ├── .dockerignore            # Reglas de exclusión para el contexto de Docker
 ├── .gitignore               # Reglas de exclusión para Git
-├── app.py                   # Enlace de servicio en la raíz del contenedor
+├── app.py                   # Aplicación interactiva de servicio Streamlit
 ├── Dockerfile               # Instrucciones de construcción de la imagen de producción
 ├── ML_Supervisado_Streamlit_Docker_GCP.ipynb # Cuaderno ejecutable en Google Colab
-├── ml_core.py               # Módulo central en raíz para el contenedor
+├── ml_core.py               # Módulo central: inferencia de tipos, pipelines, métricas y CV
 ├── model.joblib             # Artefacto serializado (modelo entrenado + metadatos)
 ├── README.md                # Documentación técnica institucional
-├── requirements.txt         # Especificación de dependencias con versiones compatibles
-└── train.py                 # Script de entrenamiento en raíz para el contenedor
+├── requirements.txt         # Dependencias con versiones fijadas (reproducibilidad)
+└── train.py                 # Script de entrenamiento por línea de comandos
 ```
 
 ---
@@ -164,6 +175,8 @@ streamlit run app.py --server.port=8501 --server.address=0.0.0.0
 ```
 
 Acceder a través del navegador web a `http://localhost:8501`.
+
+> **Nota sobre la pestaña de entrenamiento.** La aplicación no reentrena el modelo al arrancar: siempre sirve `model.joblib`. Incluye, como **extensión opcional**, una pestaña para entrenar con un CSV nuevo (solo si el usuario lo sube y pulsa "Entrenar"). Para no agotar la memoria de la VM, el número de filas está limitado por defecto a 20.000.
 
 ---
 
@@ -252,26 +265,25 @@ http://<IP_EXTERNA_DE_LA_VM>:8501
 ### 11.1 Ejemplo de Entrada (Registro de Prueba)
 ```json
 {
-  "Call Failure": 8.0,
-  "Subscription Length": 38.0,
-  "Charge Amount": 0.0,
-  "Seconds of Use": 4370.0,
-  "Frequency of use": 71.0,
-  "Frequency of SMS": 5.0,
-  "Distinct Called Numbers": 17.0,
+  "Call Failure": 2,
   "Complains": "0",
+  "Subscription Length": 36,
+  "Charge Amount": 0,
+  "Seconds of Use": 1260,
+  "Frequency of use": 39,
+  "Frequency of SMS": 20,
+  "Distinct Called Numbers": 22,
   "Age Group": "3",
   "Tariff Plan": "1",
-  "Status": "1",
-  "Age": "30"
+  "Status": "2"
 }
 ```
 
 ### 11.2 Salida Generada por el Modelo
 - **Clase Predicha:** `0` (Permanencia / No Abandono).
 - **Probabilidades Estimadas:** 
-  - Probabilidad de Permanencia (`P(Y=0)`): 0.9862
-  - Probabilidad de Abandono (`P(Y=1)`): 0.0138
+  - Probabilidad de Permanencia (`P(Y=0)`): 0.5093
+  - Probabilidad de Abandono (`P(Y=1)`): 0.4907
 
 ---
 
@@ -281,9 +293,33 @@ Para validar la reproducibilidad externa requerida en la sección 31 de la guía
 
 1. Clonar el repositorio mediante la URL pública.
 2. Comprobar la integridad de los archivos raíz (`Dockerfile`, `requirements.txt`, `app.py`, `model.joblib`).
-3. Ejecutar el comando `docker build -t ml-streamlit-app .` sin alertas de falla de dependencias.
-4. Ejecutar el contenedor mediante `docker run -d -p 8501:8501 ml-streamlit-app`.
+3. Ejecutar el comando `sudo docker build -t ml-streamlit-app .` sin alertas de falla de dependencias.
+4. Ejecutar el contenedor mediante `sudo docker run -d -p 8501:8501 ml-streamlit-app`.
 5. Enviar una petición a través de la pestaña de predicción unitaria o predicción por lotes y verificar la respuesta esperada.
+
+> **Nota sobre permisos.** Los pasos 3 y 4 usan `sudo` porque el usuario que sigue el protocolo en la VM puede no pertenecer aún al grupo `docker`. Quien haya ejecutado `sudo usermod -aG docker $USER` (y reiniciado la sesión SSH) puede omitir `sudo`.
+
+### 12.1 Evidencia de la Prueba Cruzada (PDF §31)
+
+| Campo | Detalle |
+|:---|:---|
+| **Pareja evaluadora** | *(por completar)* |
+| **Fecha** | *(por completar)* |
+| **Entorno** | *(SO y versión de Docker)* |
+| **Pasos ejecutados** | Clonar → leer README → `docker build` → `docker run` → probar al menos un caso |
+| **Resultado** | *(exitoso / con observaciones)* |
+| **Errores o instrucciones faltantes** | *(por completar)* |
+| **Evidencia** | *(captura / log adjunto)* |
+
+### 12.2 Evidencia del Despliegue en la VM (GCP)
+
+| Campo | Detalle |
+|:---|:---|
+| **URL / IP externa** | `http://<IP_EXTERNA_DE_LA_VM>:8501` |
+| **Fecha del despliegue** | *(por completar)* |
+| **Instancia** | *(nombre, zona, tipo e2-small)* |
+| **Estado del contenedor** | `docker ps` / `docker logs ml-streamlit` *(por adjuntar)* |
+| **Captura de la aplicación** | *(por adjuntar)* |
 
 ---
 
@@ -304,5 +340,8 @@ gcloud compute instances delete <NOMBRE_DE_LA_VM> --zone=<ZONA>
 ## 14. Autores
 
 - **Julián Jiménez**  
-  *Programa de Maestría en Inteligencia Artificial / Ciencia de Datos*  
+  *Programa de Pregrado en Ciencia de Datos*  
   *Repositorio Académico:* [julianjimenez4809-ui](https://github.com/julianjimenez4809-ui)
+
+- **Tomás Rincón**  
+  *Programa de Pregrado en Ciencia de Datos*

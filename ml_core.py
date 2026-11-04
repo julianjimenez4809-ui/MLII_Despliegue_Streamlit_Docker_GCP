@@ -18,14 +18,16 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
+    average_precision_score,
     balanced_accuracy_score,
     classification_report,
     confusion_matrix,
     f1_score,
+    precision_score,
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
@@ -160,7 +162,12 @@ def evaluate(model, X_test, y_test) -> dict:
     proba = model.predict_proba(X_test)
     try:
         if len(classes) == 2:
+            pos = classes[1]
             metrics["roc_auc"] = float(roc_auc_score(y_test, proba[:, 1]))
+            metrics["precision_pos"] = float(precision_score(y_test, pred, pos_label=pos, zero_division=0))
+            metrics["recall_pos"] = float(recall_score(y_test, pred, pos_label=pos, zero_division=0))
+            metrics["f1_pos"] = float(f1_score(y_test, pred, pos_label=pos, zero_division=0))
+            metrics["average_precision"] = float(average_precision_score(y_test, proba[:, 1]))
         else:
             metrics["roc_auc_ovr"] = float(roc_auc_score(y_test, proba, multi_class="ovr", labels=classes))
     except ValueError:
@@ -171,6 +178,58 @@ def evaluate(model, X_test, y_test) -> dict:
         "classification_report": classification_report(y_test, pred, zero_division=0),
         "labels": [str(c) for c in classes],
     }
+
+
+def cross_val_compare(
+    df: pd.DataFrame,
+    target: str,
+    drop_columns=None,
+    models=None,
+    cv: int = 5,
+    random_state: int = RANDOM_STATE,
+) -> dict:
+    """Validación cruzada estratificada sobre el dataset completo para comparar modelos.
+
+    Se usa para elegir el modelo sin consumir el conjunto de prueba (evita el sesgo de
+    elegir "el mejor" sobre el propio test). Devuelve media ± desviación de f1 (clase
+    positiva), recall (clase positiva) y ROC-AUC para cada modelo.
+    """
+    df = clean_columns(df)
+    target = " ".join(str(target).split())
+    drop_columns = [" ".join(str(c).split()) for c in (drop_columns or [])]
+    df = df.dropna(subset=[target])
+
+    y = df[target]
+    if y.dtype == object or pd.api.types.is_bool_dtype(y):
+        y = y.astype(str)
+    features = [c for c in df.columns if c != target and c not in drop_columns]
+    X = df[features].copy()
+    numeric_features, categorical_features = infer_feature_types(X)
+    for col in categorical_features:
+        X[col] = X[col].where(X[col].isna(), X[col].astype(str)).astype(object)
+
+    models = list(models) if models else list(MODELS)
+    pos = sorted(y.unique().tolist())[-1]
+    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+    results = {}
+    for name in models:
+        f1s, recs, aucs = [], [], []
+        for tr, te in skf.split(X, y):
+            pipe = build_pipeline(numeric_features, categorical_features, name)
+            pipe.fit(X.iloc[tr], y.iloc[tr])
+            pred = pipe.predict(X.iloc[te])
+            f1s.append(f1_score(y.iloc[te], pred, pos_label=pos, zero_division=0))
+            recs.append(recall_score(y.iloc[te], pred, pos_label=pos, zero_division=0))
+            try:
+                aucs.append(roc_auc_score(y.iloc[te], pipe.predict_proba(X.iloc[te])[:, 1]))
+            except (ValueError, IndexError):
+                pass
+        results[name] = {
+            "f1_pos": (float(np.mean(f1s)), float(np.std(f1s))),
+            "recall_pos": (float(np.mean(recs)), float(np.std(recs))),
+            "roc_auc": (float(np.mean(aucs)), float(np.std(aucs))) if aucs else (float("nan"), float("nan")),
+        }
+    return results
 
 
 def train(

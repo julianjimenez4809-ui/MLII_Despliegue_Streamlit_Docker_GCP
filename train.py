@@ -23,7 +23,10 @@ DATA_URL = (
 )
 MODEL_PATH = Path("model.joblib")
 DEFAULT_TARGET = "Churn"
-DEFAULT_DROP = ["Customer Value"]  # derivada del uso -> riesgo de fuga de información
+# "Customer Value" se deriva del uso (fuga de información); "Age" es redundante
+# con "Age Group" (correspondencia 1:1), por lo que se excluye para evitar
+# duplicar las mismas columnas one-hot.
+DEFAULT_DROP = ["Customer Value", "Age"]
 
 
 def load_data(path: Path) -> pd.DataFrame:
@@ -63,6 +66,17 @@ def main() -> None:
     else:
         drop = args.drop
     print(f"Datos: {df.shape} | objetivo: {args.target} | excluidas: {drop} | modelo: {args.model}")
+
+    # Comparación de modelos con validación cruzada (selección sin tocar el test)
+    try:
+        cv_results = ml_core.cross_val_compare(df, args.target, drop, models=list(ml_core.MODELS), cv=5)
+        print("\nValidación cruzada (5 folds, media ± desv):")
+        for name, scores in cv_results.items():
+            print(f"  {name}: f1_pos={scores['f1_pos'][0]:.4f}±{scores['f1_pos'][1]:.4f} | "
+                  f"recall_pos={scores['recall_pos'][0]:.4f}±{scores['recall_pos'][1]:.4f} | "
+                  f"roc_auc={scores['roc_auc'][0]:.4f}±{scores['roc_auc'][1]:.4f}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"\n(AVISO) No se pudo calcular la validación cruzada: {exc}")
 
     artifact = train_model(df, args.target, drop, args.model, args.data.name)
     joblib.dump(artifact, args.out)

@@ -72,6 +72,8 @@ tab_train, tab_single, tab_batch = st.tabs(
 # ----------------------------------------------------------------------------
 with tab_train:
     st.subheader("Entrenar un modelo con cualquier CSV")
+    st.caption("Extensión opcional: la app **no** reentrena al arrancar; esto solo ocurre si se "
+               "sube un CSV y se pulsa Entrenar. En una VM pequeña, entrene datasets moderados.")
     st.write("Seleccione un archivo CSV (separador `,` o `;` detectado automáticamente).")
     up = st.file_uploader("Explorar archivos", type=["csv"], key="train_csv")
     if up is not None:
@@ -103,7 +105,8 @@ with tab_train:
         cA, cB, cC = st.columns(3)
         model_name = cA.selectbox("Modelo", list(ml_core.MODELS), format_func=ml_core.MODELS.get, index=1)
         test_size = cB.slider("Proporción de prueba", 0.1, 0.4, 0.2, 0.05)
-        max_rows = cC.number_input("Máximo de filas (0 = todas)", min_value=0, value=0, step=1000)
+        max_rows = cC.number_input("Máximo de filas (0 = todas)", min_value=0, value=20000, step=1000,
+                                   help="Limita las filas usadas para no agotar la memoria de la VM.")
 
         st.write("Distribución de la variable objetivo:")
         st.dataframe(df[target].value_counts(dropna=False).rename("conteo").to_frame().T)

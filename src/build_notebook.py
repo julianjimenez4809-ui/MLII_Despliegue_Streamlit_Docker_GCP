@@ -8,7 +8,8 @@ import json
 from pathlib import Path
 
 SRC = Path(__file__).parent
-OUT = SRC.parent / "ML_Supervisado_Streamlit_Docker_GCP.ipynb"
+ROOT = SRC.parent
+OUT = ROOT / "ML_Supervisado_Streamlit_Docker_GCP.ipynb"
 P = "/content/ml_streamlit_project"
 
 cells = []
@@ -24,7 +25,8 @@ def code(text):
 
 
 def writefile(name):
-    code(f"%%writefile {P}/{name}\n" + (SRC / name).read_text())
+    # Los archivos fuente viven en la raíz (una sola copia); el notebook los embebe.
+    code(f"%%writefile {P}/{name}\n" + (ROOT / name).read_text())
 
 
 md("""
@@ -32,7 +34,7 @@ md("""
 ## Ruta A – Aprendizaje supervisado (clasificación)
 **Google Colab + datos propios + Streamlit + GitHub + Docker + Google Cloud Compute Engine**
 
-**Autores (pareja):** _Nombre 1_ · _Nombre 2_
+**Autores (pareja):** Julián Jiménez · Tomás Rincón
 
 Este notebook es **el único entregable de desarrollo**: al ejecutarlo de principio a fin
 (`Entorno de ejecución → Ejecutar todo`) genera todo el proyecto en `/content/ml_streamlit_project`:
@@ -84,7 +86,7 @@ code("""
 DATA_URL = ("https://raw.githubusercontent.com/wilmerpineda/machine_learning_ii_course_public/"
             "main/datasets/public/Customer_Churn_Iran.csv")
 TARGET = "Churn"
-EXTRA_DROP = ["Customer Value"]   # además de las sugeridas automáticamente (IDs, constantes)
+EXTRA_DROP = ["Customer Value", "Age"]   # Customer Value: fuga; Age: redundante con Age Group
 MODEL_NAME = "random_forest"      # "logistic_regression" o "random_forest"
 USE_UPLOAD = False                # True -> seleccionar un CSV/Excel propio desde el computador
 RANDOM_STATE = 42
@@ -330,44 +332,14 @@ reqs = "\\n".join(f"{p}=={version(p)}" for p in pkgs) + "\\n"
 print(reqs)
 print("Python de Colab:", sys.version.split()[0])
 """)
-code(f"""
-%%writefile {P}/.dockerignore
-.git
-.venv
-__pycache__
-*.pyc
-.ipynb_checkpoints
-.env
-*.log
-""")
-code("""
-# Dockerfile del PDF §17. La versión de Python de la imagen base se iguala a la de Colab
-# (PDF: python:3.12-slim) para que model.joblib se cargue con las mismas librerías.
-PY = f"{sys.version_info.major}.{sys.version_info.minor}"
-dockerfile = f'''FROM python:{PY}-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8501
-
-CMD ["streamlit", "run", "app.py", \\\\
-     "--server.address=0.0.0.0", \\\\
-     "--server.port=8501"]
-'''
-(PROJECT / "Dockerfile").write_text(dockerfile)
-print(dockerfile)
-""")
+writefile(".dockerignore")
+writefile("Dockerfile")
 
 md("""
 ## 18. ¿Qué significa cada instrucción Docker?
 | Instrucción | Significado |
 |---|---|
-| `FROM python:3.X-slim` | Imagen base pequeña con Python (misma versión que el Colab donde se entrenó; hoy 3.12) |
+| `FROM python:3.12-slim` | Imagen base pequeña con Python 3.12 |
 | `WORKDIR /app` | Directorio de trabajo dentro de la imagen |
 | `COPY requirements.txt .` | Copia primero las dependencias para aprovechar la caché de capas |
 | `RUN pip install ...` | Instala las librerías dentro de la imagen |
@@ -375,147 +347,13 @@ md("""
 | `EXPOSE 8501` | Documenta el puerto de Streamlit |
 | `CMD ...` | Proceso que se ejecuta al iniciar el contenedor |
 
-El Dockerfile se escribe en Colab, pero la imagen **se construye en la VM** de GCP.
+El Dockerfile y el `.dockerignore` se embeben tal cual están en el repositorio (una sola fuente de verdad);
+la imagen **se construye en la VM** de GCP.
 """)
 
 md("## 20. README completo")
-code('''
-m = loaded["metrics"]
-metricas_md = "\\n".join(f"| {k} | {v:.4f} |" for k, v in m.items())
-import json
-ej_in = json.dumps(loaded["reference"]["input"], ensure_ascii=False, indent=2, default=str)
-probs = {c: float(EJEMPLO_OUT[c].iloc[0]) for c in EJEMPLO_OUT.columns if c.startswith("prob_")}
-ej_out = f"Clase predicha: {EJEMPLO_OUT['prediccion'].iloc[0]} | Probabilidades: {probs}"
-
-readme = f"""# Reto ML supervisado: predicción de abandono (churn) con Streamlit + Docker + GCP
-
-**Autores:** _Nombre 1_ · _Nombre 2_
-
-## Objetivo
-Predecir si un cliente de telecomunicaciones abandonará la compañía (`{TARGET}` = 1) y servir el modelo en una
-aplicación Streamlit empaquetada con Docker y desplegada en una VM de Google Cloud. La app también permite
-**entrenar un modelo nuevo con cualquier CSV de clasificación** subido desde el navegador.
-
-## Dataset y unidad de observación
-- Fuente: `Customer_Churn_Iran.csv`, del repositorio del curso
-  (https://github.com/wilmerpineda/machine_learning_ii_course_public/tree/main/datasets/public), copiado en `data/datos.csv`.
-- Cada fila es **un cliente** con su uso agregado de 12 meses. {df.shape[0]} filas y {df.shape[1]} columnas, sin valores nulos.
-- Si `data/datos.csv` no existe, `train.py` lo descarga desde la URL pública.
-
-## Ruta elegida
-**Ruta A – Aprendizaje supervisado**, clasificación binaria.
-
-## Variables utilizadas
-- Numéricas: {", ".join(loaded["numeric_features"])}
-- Categóricas: {", ".join(loaded["categorical_features"])}
-- Excluidas: {", ".join(loaded["dropped_columns"])} (`Customer Value` se deriva del uso: riesgo de fuga de información).
-- El tipo de cada variable se infiere automáticamente: texto, o enteros con 10 o menos valores distintos, cuentan como categóricas.
-
-## Preparación de datos
-Todo vive dentro de un `Pipeline` de scikit-learn (`ml_core.build_pipeline`):
-- Numéricas: `SimpleImputer(median)` → `StandardScaler`.
-- Categóricas: `SimpleImputer(most_frequent)` → texto → `OneHotEncoder(handle_unknown="ignore")`.
-- Nombres de columna normalizados (espacios dobles). Partición 80/20 estratificada, `random_state=42`.
-
-## Modelo y justificación
-Se compararon regresión logística (modelo base del PDF) y Random Forest (300 árboles, `min_samples_leaf=5`,
-`class_weight="balanced"`, configuración del notebook de semana 14). Modelo elegido: **{ml_core.MODELS[loaded["model_name"]]}**,
-por su mayor recall de la clase churn y su mayor F1 ponderado.
-
-## Métricas (conjunto de prueba, {loaded["n_rows_test"]} clientes)
-| Métrica | Valor |
-|---|---|
-{metricas_md}
-
-Las clases están desbalanceadas, así que se prioriza recall y F1 sobre accuracy: no detectar a un cliente que se va es el error más costoso.
-
-## Interpretación de la salida
-La app devuelve la **clase predicha** (0 = permanece, 1 = abandona) y la **probabilidad de cada clase**.
-Una probabilidad alta de 1 indica que conviene una acción de retención. Es una demostración académica: no se debe
-usar para decisiones reales sin validación externa.
-
-## Estructura
-```
-data/datos.csv  ml_core.py  train.py  model.joblib  app.py
-requirements.txt  Dockerfile  .dockerignore  .streamlit/config.toml  README.md
-```
-
-## Cómo ejecutar train.py
-```bash
-pip install -r requirements.txt
-python train.py                                   # dataset por defecto -> model.joblib
-python train.py --data otro.csv --target clase    # cualquier CSV de clasificación
-```
-
-## Cómo ejecutar Streamlit
-```bash
-streamlit run app.py --server.address=0.0.0.0 --server.port=8501
-```
-Pestañas: **1) Entrenar con nuevo CSV**, **2) Predecir un caso**, **3) Predecir por lotes (CSV)**.
-
-## Cómo construir la imagen Docker
-```bash
-docker build -t ml-streamlit-app .
-docker images
-```
-
-## Cómo ejecutar el contenedor
-```bash
-docker run --rm -p 8501:8501 ml-streamlit-app          # prueba interactiva (Ctrl+C para salir)
-docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
-docker ps
-docker logs ml-streamlit
-```
-Abrir `http://IP_EXTERNA_DE_LA_VM:8501`.
-
-## Despliegue en Google Cloud (Compute Engine)
-1. Consola de GCP → Compute Engine (habilitar la API si la consola lo pide) → Crear instancia: **Ubuntu 24.04 LTS**, tamaño pequeño (por ejemplo e2-small), IP externa, etiqueta de red `streamlit-server`.
-2. Botón **SSH** y luego:
-```bash
-sudo apt update && sudo apt install -y docker.io git
-sudo systemctl enable --now docker
-git clone <URL_DEL_REPOSITORIO> && cd <NOMBRE_DEL_REPOSITORIO>
-ls -la                       # Dockerfile, app.py, ml_core.py, model.joblib, requirements.txt
-sudo docker build -t ml-streamlit-app .
-sudo docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
-```
-3. Firewall (Cloud Shell o VPC → Firewall):
-```bash
-gcloud compute firewall-rules create allow-streamlit-8501 --allow=tcp:8501 --direction=INGRESS --target-tags=streamlit-server
-```
-4. Abrir `http://IP_EXTERNA:8501`.
-5. **Al terminar, detener o eliminar la VM** y la regla de firewall para no generar costos.
-
-## Actualizar la aplicación desplegada
-```bash
-git pull
-sudo docker stop ml-streamlit && sudo docker rm ml-streamlit
-sudo docker build -t ml-streamlit-app .
-sudo docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
-```
-
-## Diagnóstico
-| Situación | Revisión |
-|---|---|
-| train.py falla | ruta del dataset, nombre de la columna objetivo, dependencias |
-| Contenedor se detiene | `docker ps -a`, `docker logs ml-streamlit` |
-| Puerto no responde | `-p 8501:8501` y `--server.address=0.0.0.0` |
-| Funciona en la VM pero no desde fuera | regla de firewall, etiqueta `streamlit-server`, IP externa |
-| Error al cargar model.joblib | versiones de `requirements.txt` iguales a las del entrenamiento |
-
-## Ejemplo de entrada y salida
-Entrada:
-```json
-{ej_in}
-```
-Salida: `{ej_out}`
-
-## Reproducción completa desde Colab
-Abrir `ML_Supervisado_Streamlit_Docker_GCP.ipynb` en Google Colab → *Ejecutar todo*. Se regenera todo el proyecto.
-"""
-(PROJECT / "README.md").write_text(readme, encoding="utf-8")
-print(readme[:1500])
-''')
+md("El `README.md` del repositorio se embebe tal cual (una sola fuente de verdad):")
+writefile("README.md")
 
 md("## 21. Empaquetar y descargar el proyecto (para subirlo a GitHub)")
 code("""
