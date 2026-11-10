@@ -4,9 +4,6 @@
 **Programa:** Pregrado en Ciencia de Datos  
 **Modalidad:** Reto Práctico de Ciclo de Vida Completo de Machine Learning  
 
-**Demo pública temporal:** [https://commission-inexpensive-municipality-dos.trycloudflare.com](https://commission-inexpensive-municipality-dos.trycloudflare.com)  
-*Activa mientras el túnel de Cloudflare esté en ejecución. Para un enlace permanente, ver la sección 10.6.*
-
 ---
 
 ## 1. Descripción y Propósito del Proyecto
@@ -329,21 +326,6 @@ http://<IP_EXTERNA_DE_LA_VM>:8501
 
 **No verificada.** No ejecutamos el despliegue en Google Cloud porque la creación de la cuenta de facturación de GCP exige un prepago o cargo de verificación que no se reembolsa de forma inmediata, y decidimos no asumirlo. Esta sección queda como protocolo reproducible, no como evidencia ejecutada. La verificación funcional del contenedor la realizamos localmente y está documentada en la sección 9.3.
 
-#### Alternativa de despliegue: Streamlit público (temporal)
-
-Como no ejecutamos GCP, publicamos la misma app Streamlit mediante un túnel de Cloudflare:
-
-**https://commission-inexpensive-municipality-dos.trycloudflare.com**
-
-| Verificación | Resultado |
-|:---|:---|
-| Túnel | `cloudflared tunnel --url http://127.0.0.1:8501 --protocol http2` |
-| Healthcheck público | `200` / `ok` |
-| App cargada desde la URL pública | título `ML App - Clasificación supervisada` |
-| Captura | [`docs/evidencias/streamlit-publico.png`](docs/evidencias/streamlit-publico.png) |
-
-> Es una URL **temporal**: funciona mientras el proceso de Cloudflare esté activo. No es Streamlit Community Cloud ni reemplaza el rubro de GCP. Para un enlace permanente, ver la sección 10.6.
-
 ### 10.6 Despliegue Permanente en Streamlit Community Cloud
 
 [![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=julianjimenez4809-ui/MLII_Despliegue_Streamlit_Docker_GCP&branch=main&mainModule=app.py)
@@ -457,7 +439,7 @@ gcloud compute instances delete <NOMBRE_DE_LA_VM> --zone=<ZONA>
 |:---|:---|:---|
 | Datos y variables | Completo | Secciones 2 y 4 |
 | Modelamiento y métricas | Completo | Sección 6 |
-| Streamlit | Completo (local y demo pública temporal) | Secciones 8.3 y 10.5 |
+| Streamlit | Completo (local) | Sección 8.3 y capturas |
 | Docker build/run | Completo | Secciones 9.3 y 9.4, `docs/evidencias/` |
 | GCP | No ejecutado | Sección 10.5 |
 | Streamlit Community Cloud (permanente) | Pendiente de autorización OAuth | Sección 10.6 |
@@ -495,7 +477,6 @@ gcloud compute instances delete <NOMBRE_DE_LA_VM> --zone=<ZONA>
 - [x] El repositorio contiene todos los archivos necesarios.
 - [x] `docker build` y `docker run` funcionan y el contenedor queda healthy (sección 9.3).
 - [x] `docker logs` no muestra errores críticos.
-- [x] La app está publicada temporalmente en Streamlit (sección 10.5).
 - [x] La prueba cruzada quedó documentada (sección 12.1).
 - [x] Sabemos detener o eliminar la VM para controlar costos (sección 13).
 - [ ] Despliegue permanente en Streamlit Community Cloud (sección 10.6).
