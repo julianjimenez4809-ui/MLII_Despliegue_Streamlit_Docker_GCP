@@ -96,7 +96,7 @@ md("""
 ## Módulo común `ml_core.py`
 Contiene el Pipeline del PDF §7.3 (imputación + escalado / imputación + OneHot + modelo),
 la inferencia automática de variables numéricas/categóricas, la evaluación del PDF §8.1 y la
-construcción del artefacto (PDF §8.2 y §14). Lo usan **tanto `train.py` como `app.py`**, por lo que
+construcción del artefacto (PDF §8.2 y §14). Lo usamos **tanto en `train.py` como en `app.py`**, por lo que
 las transformaciones de entrenamiento y de serving son idénticas.
 """)
 writefile("ml_core.py")
@@ -127,8 +127,8 @@ md("""
 ## 6. Revisión mínima del dataset
 - **¿Qué representa una fila?** Un cliente de una compañía de telecomunicaciones iraní, con su uso agregado de 12 meses.
 - **Objetivo:** predecir `Churn` (1 = el cliente abandona).
-- **¿Qué variables pueden entrar?** Las de uso y perfil. `Customer Value` se excluye porque se calcula a partir del uso (riesgo de fuga) y no está disponible para un cliente nuevo.
-- Los nombres con doble espacio (`Call  Failure`) se normalizan con `ml_core.clean_columns`.
+- **¿Qué variables pueden entrar?** Las de uso y perfil. Excluimos `Customer Value` porque se calcula a partir del uso (riesgo de fuga) y no está disponible para un cliente nuevo.
+- Los nombres con doble espacio (`Call  Failure`) los normalizamos con `ml_core.clean_columns`.
 """)
 code("""
 print(df.shape)
@@ -170,7 +170,7 @@ print(X_train.shape, X_test.shape)
 
 md("""
 ### Paso 7.3 – Preprocesamiento + modelo (Pipeline)
-Modelo base del PDF: regresión logística. Se compara con Random Forest (configuración del notebook
+Modelo base del PDF: regresión logística. Lo comparamos con Random Forest (configuración del notebook
 de semana 14 del curso: 300 árboles, `min_samples_leaf=5`, `class_weight="balanced"`).
 """)
 code("""
@@ -236,7 +236,7 @@ drop_args = " ".join(f'"{c}"' for c in drop_columns)
 md("""
 ## 13–14. Aplicación Streamlit `app.py`
 Tres pestañas:
-1. **Entrenar con nuevo CSV**: botón para seleccionar cualquier CSV, elegir la columna objetivo, las columnas a excluir y el modelo. Se entrena con el **mismo pipeline** de `ml_core.py`, se muestran las métricas y el modelo queda activo (y se puede descargar).
+1. **Entrenar con nuevo CSV**: botón para seleccionar cualquier CSV, elegir la columna objetivo, las columnas a excluir y el modelo. Entrenamos con el **mismo pipeline** de `ml_core.py`, mostramos las métricas y el modelo queda activo (y se puede descargar).
 2. **Predecir un caso**: el formulario se genera desde el artefacto (`number_input` con mediana/rango y `selectbox` con las categorías vistas en entrenamiento, PDF §14).
 3. **Predecir por lotes**: se sube un CSV, se validan las columnas (las faltantes se imputan y las sobrantes se ignoran) y se descarga el resultado.
 
@@ -348,7 +348,7 @@ md("""
 | `CMD ...` | Proceso que se ejecuta al iniciar el contenedor |
 
 El Dockerfile y el `.dockerignore` se embeben tal cual están en el repositorio (una sola fuente de verdad);
-la imagen **se construye en la VM** de GCP.
+construimos la imagen en la VM de GCP.
 """)
 
 md("## 20. README completo")

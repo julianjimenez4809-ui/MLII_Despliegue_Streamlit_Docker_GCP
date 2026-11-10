@@ -8,9 +8,9 @@
 
 ## 1. Descripción y Propósito del Proyecto
 
-El presente proyecto implementa el ciclo de vida completo de una solución de Machine Learning aplicada, abarcando desde la ingesta de datos y el preprocesamiento automatizado hasta el entrenamiento, evaluación estadística, serialización de artefactos, desarrollo de interfaz interactiva, contenedorización mediante Docker y despliegue en una máquina virtual de infraestructura como servicio (IaaS) en Google Cloud Platform (Compute Engine).
+En este proyecto implementamos el ciclo de vida completo de una solución de Machine Learning aplicada: desde la ingesta de datos y el preprocesamiento automatizado hasta el entrenamiento, la evaluación estadística, la serialización de artefactos, el desarrollo de la interfaz interactiva, la contenedorización con Docker y el despliegue en una máquina virtual de infraestructura como servicio (IaaS) en Google Cloud Platform (Compute Engine).
 
-El objetivo principal es garantizar la reproducibilidad estricta del sistema en entornos heterogéneos (Google Colab, entornos locales basados en contenedores y servidores de producción en la nube), asegurando paridad numérica en inferencia y desacoplando la fase de entrenamiento de la fase de servicio.
+Nuestro objetivo principal es garantizar la reproducibilidad estricta del sistema en entornos heterogéneos (Google Colab, entornos locales basados en contenedores y servidores de producción en la nube), asegurar la paridad numérica en inferencia y desacoplar la fase de entrenamiento de la fase de servicio.
 
 ---
 
@@ -20,13 +20,13 @@ El objetivo principal es garantizar la reproducibilidad estricta del sistema en 
 - **Unidad de Análisis:** Cada registro corresponde a un cliente individual de una empresa de telecomunicaciones, evaluado a lo largo de un período de observación de 12 meses.
 - **Volumen:** 3.150 observaciones y 14 columnas tabulares sin presencia de valores nulos estructurales.
 - **Variable Objetivo (`Target`):** `Churn` (variable binaria, donde `1` representa el abandono del servicio por parte del usuario y `0` representa la retención).
-- **Distribución de Clases:** Se presenta un problema de clases desbalanceadas (aproximadamente 15,7% de casos positivos y 84,3% de casos negativos), lo cual exige una estrategia de evaluación especializada.
+- **Distribución de Clases:** Trabajamos con un problema de clases desbalanceadas (aproximadamente 15,7% de casos positivos y 84,3% de casos negativos), lo que nos exige una estrategia de evaluación especializada.
 
 ---
 
 ## 3. Ruta Metodológica
 
-El proyecto se desarrolla bajo la **Ruta A (Aprendizaje Supervisado - Clasificación Binaria)** definida en la guía de laboratorio:
+Desarrollamos el proyecto bajo la **Ruta A (Aprendizaje Supervisado - Clasificación Binaria)** definida en la guía de laboratorio:
 
 - Modelamiento predictivo supervisado con partición estratificada de datos (80% entrenamiento, 20% prueba, `random_state=42`).
 - Arquitectura basada en `Pipeline` de `scikit-learn` que integra de forma atómica la imputación, estandarización, codificación categórica y estimador.
@@ -36,7 +36,7 @@ El proyecto se desarrolla bajo la **Ruta A (Aprendizaje Supervisado - Clasificac
 
 ## 4. Definición y Justificación de Variables
 
-A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz de usuario reciba únicamente información disponible al momento de la toma de decisiones, se aplicó el siguiente esquema de variables. La variable objetivo es `Churn` (1 = abandono, 0 = permanencia), con un desbalance aproximado de 15,7 % positivos / 84,3 % negativos; por eso la partición es estratificada y la evaluación prioriza la clase positiva.
+A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz de usuario reciba únicamente información disponible al momento de la toma de decisiones, aplicamos el siguiente esquema de variables. La variable objetivo es `Churn` (1 = abandono, 0 = permanencia), con un desbalance aproximado de 15,7 % positivos / 84,3 % negativos; por eso la partición es estratificada y la evaluación prioriza la clase positiva.
 
 ### 4.1 Variables Predictoras Incluidas
 
@@ -59,16 +59,16 @@ A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz
 | Variable | Motivo de exclusión |
 |:---|:---|
 | `Customer Value` | Se calcula *a posteriori* a partir de métricas agregadas de uso. Incluirla generaría fuga de información y no está disponible para un cliente nuevo o en una intervención temprana. |
-| `Age` | Presenta una correspondencia **1:1** con `Age Group` (15→1, 25→2, 30→3, 45→4, 55→5). Mantener ambas duplicaría exactamente las mismas columnas one-hot sin aportar información; se conserva `Age Group`, que es el agrupamiento interpretable. |
+| `Age` | Presenta una correspondencia **1:1** con `Age Group` (15→1, 25→2, 30→3, 45→4, 55→5). Mantener ambas duplicaría exactamente las mismas columnas one-hot sin aportar información; conservamos `Age Group`, que es el agrupamiento interpretable. |
 | `Churn` | Es la variable objetivo; no entra como predictor. |
 
-> No se incluyen identificadores porque el dataset no los contiene. Si existieran columnas como `ID` o `Customer ID`, se excluirían para evitar que el modelo memorice clientes en lugar de aprender patrones.
+> No incluimos identificadores porque el dataset no los contiene. Si existieran columnas como `ID` o `Customer ID`, las excluiríamos para evitar que el modelo memorice clientes en lugar de aprender patrones.
 
 ---
 
 ## 5. Preparación de Datos y Arquitectura del Pipeline
 
-Para asegurar que las mismas transformaciones del entrenamiento se repliquen exactamente durante la inferencia, se utilizó un `ColumnTransformer` encapsulado en un `Pipeline`:
+Para asegurar que las mismas transformaciones del entrenamiento se repliquen exactamente durante la inferencia, utilizamos un `ColumnTransformer` encapsulado en un `Pipeline`:
 
 ```
 Entrada tabular (CSV o Formulario)
@@ -84,17 +84,17 @@ Entrada tabular (CSV o Formulario)
 ```
 
 - **Manejo de categorías no observadas:** El codificador `OneHotEncoder` utiliza el parámetro `handle_unknown="ignore"`, asignando un vector nulo a categorías no presentes en la fase de entrenamiento, evitando fallas críticas en tiempo de ejecución.
-- **Normalización de identificadores de columna:** Los encabezados son procesados para eliminar codificaciones BOM y duplicidad de espacios tipográficos presentes en el archivo fuente.
+- **Normalización de identificadores de columna:** Procesamos los encabezados para eliminar codificaciones BOM y duplicidad de espacios tipográficos presentes en el archivo fuente.
 
 ---
 
 ## 6. Selección y Evaluación del Modelo
 
-Se realizó una comparativa empírica entre el modelo base propuesto en la guía (`LogisticRegression`) y un ensamble de árboles (`RandomForestClassifier`, configurado con 300 estimadores, `min_samples_leaf=5`, `class_weight="balanced"` y `random_state=42`).
+Realizamos una comparativa empírica entre el modelo base propuesto en la guía (`LogisticRegression`) y un ensamble de árboles (`RandomForestClassifier`, configurado con 300 estimadores, `min_samples_leaf=5`, `class_weight="balanced"` y `random_state=42`).
 
 ### 6.1 Selección con Validación Cruzada (5-fold estratificada)
 
-Para evitar el sesgo de elegir "el mejor" modelo sobre el propio conjunto de prueba, la selección se hizo con **validación cruzada estratificada de 5 folds** sobre los datos de entrenamiento, reportando la clase positiva (`Churn=1`):
+Para evitar el sesgo de elegir "el mejor" modelo sobre el propio conjunto de prueba, hicimos la selección con **validación cruzada estratificada de 5 folds** sobre los datos de entrenamiento, reportando la clase positiva (`Churn=1`):
 
 | Métrica (media ± desv., CV) | Regresión Logística (Base) | Random Forest (Seleccionado) |
 |:---|:---:|:---:|
@@ -102,7 +102,7 @@ Para evitar el sesgo de elegir "el mejor" modelo sobre el propio conjunto de pru
 | **Recall (Clase Churn = 1)** | 0.4404 ± 0.0290 | **0.9414 ± 0.0234** |
 | **ROC-AUC** | 0.9354 ± 0.0071 | **0.9824 ± 0.0046** |
 
-El **Random Forest** domina consistentemente en las tres métricas, por lo que fue el modelo seleccionado. El conjunto de prueba se reservó exclusivamente para la evaluación final (sección 6.2), sin participar en la selección.
+El **Random Forest** dominó consistentemente las tres métricas, por lo que lo seleccionamos. Reservamos el conjunto de prueba exclusivamente para la evaluación final (sección 6.2), sin usarlo en la selección.
 
 ### 6.2 Matriz de Confusión (Random Forest en Conjunto de Prueba, N = 630)
 
@@ -125,13 +125,13 @@ El **Random Forest** domina consistentemente en las tres métricas, por lo que f
 | **Precision-Recall (Average Precision)** | 0.7616 | **0.9353** |
 
 ### 6.4 Justificación Técnica de la Elección
-Debido a la asimetría en los costos de error asociados al problema de negocio, no identificar a un cliente que efectivamente abandonará el servicio (falso negativo) conlleva la pérdida del valor de vida del cliente (*lifetime value*), mientras que un falso positivo implica únicamente una acción preventiva de contacto. Por consiguiente, el modelo **Random Forest** fue seleccionado por su capacidad de captura (**Recall de 95,96%** frente a 42,42% del modelo lineal) y su **F1 de la clase positiva (0.8636 frente a 0.5638)**. Se reporta el F1 de la clase positiva (no solo el ponderado, dominado por la clase mayoritaria) junto con la precisión-recall (*Average Precision*) para reflejar el desempeño sobre la clase de interés.
+Debido a la asimetría en los costos de error asociados al problema de negocio, no identificar a un cliente que efectivamente abandonará el servicio (falso negativo) conlleva la pérdida del valor de vida del cliente (*lifetime value*), mientras que un falso positivo implica únicamente una acción preventiva de contacto. Por consiguiente, seleccionamos el modelo **Random Forest** por su capacidad de captura (**Recall de 95,96%** frente a 42,42% del modelo lineal) y su **F1 de la clase positiva (0.8636 frente a 0.5638)**. Reportamos el F1 de la clase positiva (no solo el ponderado, dominado por la clase mayoritaria) junto con la precisión-recall (*Average Precision*) para reflejar el desempeño sobre la clase de interés.
 
 ---
 
 ## 7. Estructura del Repositorio
 
-El proyecto mantiene una organización modular y desacoplada:
+Mantenemos una organización modular y desacoplada:
 
 ```
 ├── .streamlit/
@@ -189,7 +189,7 @@ Acceder a través del navegador web a `http://localhost:8501`.
 
 ## 9. Empaquetamiento y Contenedorización con Docker
 
-El sistema se encuentra empaquetado en una imagen ligera basada en `python:3.12-slim`. La aplicación no requiere privilegios elevados y expone el puerto estándar `8501`.
+Empaquetamos el sistema en una imagen ligera basada en `python:3.12-slim`. La aplicación no requiere privilegios elevados y expone el puerto estándar `8501`.
 
 ### 9.1 Construcción de la Imagen Docker
 
@@ -217,7 +217,7 @@ docker logs ml-streamlit
 
 ### 9.3 Evidencia de Construcción y Ejecución (verificada)
 
-Evidencia registrada el **2026-11-10** en un entorno Linux/WSL con Docker 29.1.3:
+Registramos la evidencia el **2026-11-10** en un entorno Linux/WSL con Docker 29.1.3:
 
 | Verificación | Resultado |
 |:---|:---|
@@ -229,7 +229,7 @@ Evidencia registrada el **2026-11-10** en un entorno Linux/WSL con Docker 29.1.3
 | Paridad numérica del caso de referencia | `parity_diff: 0.0` |
 | Predicción de ejemplo dentro del contenedor | Clase `0`, `P(Y=0)=0.5093`, `P(Y=1)=0.4907` |
 
-Los logs completos están en:
+Guardamos los logs completos en:
 
 - [`docs/evidencias/docker-build.log`](docs/evidencias/docker-build.log)
 - [`docs/evidencias/docker-images.log`](docs/evidencias/docker-images.log)
@@ -251,7 +251,7 @@ curl http://127.0.0.1:8501/_stcore/health
 
 ## 10. Despliegue en Google Cloud Platform (Compute Engine)
 
-A continuación se detalla el protocolo para desplegar la aplicación en una instancia virtual de Google Cloud:
+A continuación detallamos el protocolo para desplegar la aplicación en una instancia virtual de Google Cloud:
 
 ### 10.1 Creación de la Instancia Virtual
 1. Acceder a la consola de administración de Google Cloud Platform (`console.cloud.google.com`).
@@ -297,6 +297,10 @@ Abrir un navegador web e ingresar la dirección IP externa de la máquina virtua
 http://<IP_EXTERNA_DE_LA_VM>:8501
 ```
 
+### 10.5 Estado de Verificación en GCP
+
+**No verificada.** No ejecutamos el despliegue en Google Cloud porque la creación de la cuenta de facturación de GCP exige un prepago o cargo de verificación que no se reembolsa de forma inmediata, y decidimos no asumirlo. Esta sección queda como protocolo reproducible, no como evidencia ejecutada. La verificación funcional del contenedor la realizamos localmente y está documentada en la sección 9.3.
+
 ---
 
 ## 11. Casos de Prueba y Contratos de Inferencia
@@ -328,13 +332,16 @@ http://<IP_EXTERNA_DE_LA_VM>:8501
 
 ## 12. Protocolo de Auditoría y Prueba Cruzada
 
-Para validar la reproducibilidad externa requerida en la sección 31 de la guía, un evaluador independiente debe poder operar el sistema siguiendo exclusivamente los siguientes pasos:
+Para validar la reproducibilidad externa requerida en la sección 31 de la guía, pedimos a un evaluador independiente que opere el sistema siguiendo exclusivamente los siguientes pasos:
 
 1. Clonar el repositorio mediante la URL pública.
-2. Comprobar la integridad de los archivos raíz (`Dockerfile`, `requirements.txt`, `app.py`, `model.joblib`).
+2. Comprobar la integridad de los archivos raíz (`Dockerfile`, `requirements.txt`, `app.py`, `ml_core.py`, `model.joblib`).
 3. Ejecutar el comando `sudo docker build -t ml-streamlit-app .` sin alertas de falla de dependencias.
-4. Ejecutar el contenedor mediante `sudo docker run -d -p 8501:8501 ml-streamlit-app`.
-5. Enviar una petición a través de la pestaña de predicción unitaria o predicción por lotes y verificar la respuesta esperada.
+4. Ejecutar el contenedor mediante `sudo docker run -d --name ml-streamlit -p 8501:8501 ml-streamlit-app`.
+5. Verificar el estado con `sudo docker ps` y revisar los logs con `sudo docker logs ml-streamlit`.
+6. Enviar una petición a través de la pestaña de predicción unitaria o predicción por lotes y verificar la respuesta esperada.
+
+> Estos pasos incorporan dos observaciones de la prueba cruzada de la sección 12.1: incluir `ml_core.py` en la verificación de integridad y asignar `--name ml-streamlit` para que el comando de logs funcione directamente.
 
 > **Nota sobre permisos.** Los pasos 3 y 4 usan `sudo` porque el usuario que sigue el protocolo en la VM puede no pertenecer aún al grupo `docker`. Quien haya ejecutado `sudo usermod -aG docker $USER` (y reiniciado la sesión SSH) puede omitir `sudo`.
 
@@ -342,29 +349,31 @@ Para validar la reproducibilidad externa requerida en la sección 31 de la guía
 
 | Campo | Detalle |
 |:---|:---|
-| **Pareja evaluadora** | *(por completar)* |
-| **Fecha** | *(por completar)* |
-| **Entorno** | *(SO y versión de Docker)* |
-| **Pasos ejecutados** | Clonar → leer README → `docker build` → `docker run` → probar al menos un caso |
-| **Resultado** | *(exitoso / con observaciones)* |
-| **Errores o instrucciones faltantes** | *(por completar)* |
-| **Evidencia** | *(captura / log adjunto)* |
+| **Pareja evaluadora** | Ailyn Gómez |
+| **Fecha** | 2026-11-10 |
+| **Entorno** | Ubuntu 24.04 (WSL2), Docker 29.1.3, imagen base `python:3.12-slim` |
+| **Commit evaluado** | `b0d5b65` |
+| **Pasos ejecutados** | Clonar el repositorio → leer únicamente el README → `docker build -t ml-streamlit-crosstest .` → `docker run -d --name ml-streamlit-crosstest -p 8502:8501 ml-streamlit-crosstest` → verificar healthcheck → probar un caso con el artefacto |
+| **Resultado** | **Exitoso con observaciones menores.** Construimos la imagen sin errores, el contenedor quedó `Up (healthy)`, `/_stcore/health` respondió `ok` y la predicción del caso de referencia devolvió clase `0` con `P(Y=1)=0.4907`. |
+| **Errores o instrucciones faltantes** | 1) El paso 2 no menciona `ml_core.py` en la verificación de integridad, aunque la app lo importa; lo verificamos manualmente y estaba presente. 2) El paso 4 no asigna `--name`, así que el `docker logs ml-streamlit` del diagnóstico no aplica directamente; obtuvimos el nombre con `docker ps`. 3) La sección 8.2 asume `python3-venv`; en el entorno de prueba no estaba instalado, pero el flujo Docker no lo requiere. |
+| **Evidencia** | [`docs/evidencias/cross-test/cross-build.log`](docs/evidencias/cross-test/cross-build.log) y [`docs/evidencias/cross-test/cross-run.log`](docs/evidencias/cross-test/cross-run.log) |
 
 ### 12.2 Evidencia del Despliegue en la VM (GCP)
 
 | Campo | Detalle |
 |:---|:---|
-| **URL / IP externa** | `http://<IP_EXTERNA_DE_LA_VM>:8501` |
-| **Fecha del despliegue** | *(por completar)* |
-| **Instancia** | *(nombre, zona, tipo e2-small)* |
-| **Estado del contenedor** | `docker ps` / `docker logs ml-streamlit` *(por adjuntar)* |
-| **Captura de la aplicación** | *(por adjuntar)* |
+| **URL / IP externa** | No aplica: no realizamos el despliegue |
+| **Fecha del despliegue** | No realizada |
+| **Instancia** | No creada |
+| **Estado del contenedor** | Verificado localmente (sección 9.3), no en GCP |
+| **Captura de la aplicación** | No disponible para GCP |
+| **Motivo** | GCP exige un prepago o cargo de verificación que no se reembolsa de forma inmediata; decidimos no asumirlo. |
 
 ---
 
 ## 13. Desaprovisionamiento y Control de Costos
 
-Al finalizar la demostración evaluativa o sesión de auditoría, es indispensable detener o desaprovisionar los recursos de cómputo para evitar facturación recurrente en Google Cloud:
+Al finalizar la demostración evaluativa o sesión de auditoría, debemos detener o desaprovisionar los recursos de cómputo para evitar facturación recurrente en Google Cloud:
 
 ```bash
 # Detención de la máquina virtual vía gcloud CLI
@@ -384,3 +393,19 @@ gcloud compute instances delete <NOMBRE_DE_LA_VM> --zone=<ZONA>
 
 - **Tomás Rincón**  
   *Programa de Pregrado en Ciencia de Datos*
+
+---
+
+## 15. Estado de Cumplimiento
+
+| Componente | Estado | Evidencia |
+|:---|:---|:---|
+| Datos y variables | Completo | Secciones 2 y 4 |
+| Modelamiento y métricas | Completo | Sección 6 |
+| Streamlit | Completo (local) | Sección 8 |
+| Docker build/run | Completo | Sección 9.3 y `docs/evidencias/` |
+| GCP | No ejecutado | Sección 10.5 |
+| README | Completo | Este documento |
+| Prueba cruzada | Completa | Sección 12.1 |
+
+> La prueba cruzada la realizamos sobre el commit `b0d5b65`; los cambios posteriores de redacción no alteran el flujo técnico verificado.

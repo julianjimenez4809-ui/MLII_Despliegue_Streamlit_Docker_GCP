@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.log
-!docs/evidencias/*.log
+!docs/evidencias/**/*.log
 .ipynb_checkpoints/
 .env
 *.zip

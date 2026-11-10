@@ -1,0 +1,21 @@
+# Prueba cruzada - Ailyn Gómez
+# Fecha: 2026-11-10
+# Commit: b0d5b65
+# Entorno: Ubuntu 24.04 (WSL2), Docker 29.1.3
+
+4a57de359bb10c2147887bfecc93acc002d2ac9d6c559852abf0d16fd049a5f2
+CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS                    PORTS                                         NAMES
+4a57de359bb1   ml-streamlit-crosstest   "streamlit run app.p…"   11 seconds ago   Up 10 seconds (healthy)   0.0.0.0:8502->8501/tcp, [::]:8502->8501/tcp   ml-streamlit-crosstest
+2026-11-10 13:32:44.676 Uvicorn server started on 0.0.0.0:8501
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://172.17.0.2:8501
+  External URL: http://<IP_PUBLICA_REDACTADA>:8501
+
+  Detected WSL. Using poll-based file watching for better compatibility. To force watchdog, set server.fileWatcherType = "watchdog".
+oksklearn: 1.9.1
+parity: 1.1102230246251565e-16
+prediccion: 0
+probs: {'prob_0': 0.5093, 'prob_1': 0.4907}

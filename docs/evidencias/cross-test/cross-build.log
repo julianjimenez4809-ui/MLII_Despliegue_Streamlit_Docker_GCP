@@ -1,0 +1,41 @@
+# Prueba cruzada - Ailyn Gómez
+# Fecha: 2026-11-10
+# Commit: b0d5b65
+# Entorno: Ubuntu 24.04 (WSL2), Docker 29.1.3
+# Comando: docker build -t ml-streamlit-crosstest .
+
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon   4.01MB
+Step 1/9 : FROM python:3.12-slim
+ ---> 5e2bdb1b0d54
+Step 2/9 : WORKDIR /app
+ ---> Using cache
+ ---> ad5ec8fd61cb
+Step 3/9 : ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1
+ ---> Using cache
+ ---> f8aa955c26c9
+Step 4/9 : COPY requirements.txt .
+ ---> Using cache
+ ---> d5b8ad24679c
+Step 5/9 : RUN pip install --no-cache-dir -r requirements.txt
+ ---> Using cache
+ ---> 3bce9ebd349b
+Step 6/9 : COPY . .
+ ---> bfaf8a516eac
+Step 7/9 : EXPOSE 8501
+ ---> Running in 4f9db77afb8e
+ ---> Removed intermediate container 4f9db77afb8e
+ ---> e01340dfb1b9
+Step 8/9 : HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3)"
+ ---> Running in 92edcee2a0ae
+ ---> Removed intermediate container 92edcee2a0ae
+ ---> 272425b10008
+Step 9/9 : CMD ["streamlit", "run", "app.py",      "--server.address=0.0.0.0",      "--server.port=8501"]
+ ---> Running in 94bceaa79c3a
+ ---> Removed intermediate container 94bceaa79c3a
+ ---> 8711afb8f3cc
+Successfully built 8711afb8f3cc
+Successfully tagged ml-streamlit-crosstest:latest
