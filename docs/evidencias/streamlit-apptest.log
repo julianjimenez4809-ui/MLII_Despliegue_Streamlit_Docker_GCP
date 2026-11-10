@@ -1,0 +1,10 @@
+# Prueba funcional de Streamlit dentro del contenedor (AppTest)
+# Fecha: 2026-11-10
+
+2026-11-10 13:50:17.771 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+render_exceptions: []
+title: ['Aplicación de Machine Learning supervisado']
+tabs: ['1 · Entrenar con nuevo CSV', '2 · Predecir un caso', '3 · Predecir por lotes (CSV)']
+number_inputs: 7 | selectboxes: 4
+submit_exceptions: []
+success: ['Clase predicha: **0**']

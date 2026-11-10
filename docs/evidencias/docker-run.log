@@ -1,9 +1,12 @@
-1d0728542e5894439a261c6c518aa7ea3fa794fae58f2ddcdd01963da018655c
+# Ejecución y verificación del contenedor
+# Fecha: 2026-11-10
+
+d6368b6becc08b6fe828142feb7c7b19495caba3ca21979cfdaa62c9c1ccbee7
 === docker ps ===
 CONTAINER ID   IMAGE              COMMAND                  CREATED          STATUS                    PORTS                                         NAMES
-1d0728542e58   ml-streamlit-app   "streamlit run app.p…"   11 seconds ago   Up 10 seconds (healthy)   0.0.0.0:8501->8501/tcp, [::]:8501->8501/tcp   ml-streamlit
+d6368b6becc0   ml-streamlit-app   "streamlit run app.p…"   12 seconds ago   Up 10 seconds (healthy)   0.0.0.0:8501->8501/tcp, [::]:8501->8501/tcp   ml-streamlit
 === docker logs ===
-2026-11-10 12:46:22.075 Uvicorn server started on 0.0.0.0:8501
+2026-11-10 13:49:53.139 Uvicorn server started on 0.0.0.0:8501
 
   You can now view your Streamlit app in your browser.
 

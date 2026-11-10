@@ -16,7 +16,7 @@ Nuestro objetivo principal es garantizar la reproducibilidad estricta del sistem
 
 ## 2. Conjunto de Datos y Unidad de Observación
 
-- **Fuente:** Repositorio académico oficial del curso (`Customer_Churn_Iran.csv`).
+- **Fuente:** Repositorio académico oficial del curso ([`Customer_Churn_Iran.csv`](https://raw.githubusercontent.com/wilmerpineda/machine_learning_ii_course_public/main/datasets/public/Customer_Churn_Iran.csv)).
 - **Unidad de Análisis:** Cada registro corresponde a un cliente individual de una empresa de telecomunicaciones, evaluado a lo largo de un período de observación de 12 meses.
 - **Volumen:** 3.150 observaciones y 14 columnas tabulares sin presencia de valores nulos estructurales.
 - **Variable Objetivo (`Target`):** `Churn` (variable binaria, donde `1` representa el abandono del servicio por parte del usuario y `0` representa la retención).
@@ -185,6 +185,14 @@ Acceder a través del navegador web a `http://localhost:8501`.
 
 > **Nota sobre la pestaña de entrenamiento.** La aplicación no reentrena el modelo al arrancar: siempre sirve `model.joblib`. Incluye, como **extensión opcional**, una pestaña para entrenar con un CSV nuevo (solo si el usuario lo sube y pulsa "Entrenar"). Para no agotar la memoria de la VM, el número de filas está limitado por defecto a 20.000.
 
+### 8.3 Captura de la Aplicación en Ejecución
+
+![Predicción de un caso en Streamlit](docs/evidencias/streamlit-prediccion.png)
+
+![Resultado de la predicción](docs/evidencias/streamlit-resultado.png)
+
+Las capturas corresponden al contenedor `ml-streamlit` corriendo en `http://localhost:8501`. La predicción de ejemplo devolvió la clase `0` y las probabilidades que se ven en la gráfica. La pestaña de entrenamiento está en [`docs/evidencias/streamlit-entrenamiento.png`](docs/evidencias/streamlit-entrenamiento.png).
+
 ---
 
 ## 9. Empaquetamiento y Contenedorización con Docker
@@ -246,6 +254,23 @@ docker ps
 docker logs ml-streamlit
 curl http://127.0.0.1:8501/_stcore/health
 ```
+
+### 9.4 Evidencia de Entrenamiento y Prueba Funcional dentro del Contenedor
+
+Ejecutamos el entrenamiento completo dentro de la imagen con `docker run --rm ml-streamlit-app python train.py`. El script regeneró `model.joblib` con las versiones fijadas, calculó la validación cruzada y verificó la paridad al recargar:
+
+| Verificación | Resultado |
+|:---|:---|
+| Entrenamiento dentro de la imagen | `Modelo guardado en model.joblib` |
+| Validación cruzada (5-fold) | Random Forest: F1 clase 1 `0.8406`, Recall `0.9414`, ROC-AUC `0.9824` |
+| Métricas en test | Accuracy `0.9524`, F1 clase 1 `0.8636`, ROC-AUC `0.9844` |
+| Paridad tras recargar | verificada por el `assert` de `train.py` |
+| Prueba funcional de Streamlit (`AppTest`) | sin excepciones; 7 entradas numéricas, 4 selectores y `Clase predicha: 0` |
+
+Logs:
+
+- [`docs/evidencias/train-in-container.log`](docs/evidencias/train-in-container.log)
+- [`docs/evidencias/streamlit-apptest.log`](docs/evidencias/streamlit-apptest.log)
 
 ---
 
@@ -402,10 +427,47 @@ gcloud compute instances delete <NOMBRE_DE_LA_VM> --zone=<ZONA>
 |:---|:---|:---|
 | Datos y variables | Completo | Secciones 2 y 4 |
 | Modelamiento y métricas | Completo | Sección 6 |
-| Streamlit | Completo (local) | Sección 8 |
-| Docker build/run | Completo | Sección 9.3 y `docs/evidencias/` |
+| Streamlit | Completo (local) | Sección 8.3 y capturas |
+| Docker build/run | Completo | Secciones 9.3 y 9.4, `docs/evidencias/` |
 | GCP | No ejecutado | Sección 10.5 |
 | README | Completo | Este documento |
 | Prueba cruzada | Completa | Sección 12.1 |
 
 > La prueba cruzada la realizamos sobre el commit `b0d5b65`; los cambios posteriores de redacción no alteran el flujo técnico verificado.
+
+---
+
+## 16. Diagnóstico de Problemas Frecuentes
+
+| Situación | Revisión |
+|:---|:---|
+| `train.py` falla | Verificar la ruta de `data/datos.csv`, el nombre de la columna objetivo y que las dependencias de `requirements.txt` estén instaladas. |
+| `model.joblib` no existe | Confirmar que `joblib.dump` se ejecutó y que la ruta de salida es la raíz del proyecto. |
+| El contenedor se detiene | Revisar `docker ps -a` y `docker logs ml-streamlit`. |
+| El puerto no responde | Confirmar `-p 8501:8501` y que Streamlit escucha en `0.0.0.0`. |
+| La app abre en la VM pero no desde fuera | Revisar la regla de firewall TCP 8501, la etiqueta `streamlit-server` y la IP externa. |
+| Error al cargar `model.joblib` | Verificar que las versiones de `requirements.txt` coinciden con las del entrenamiento (`scikit-learn==1.9.1`). |
+| Los cambios no aparecen | `git pull` → detener/eliminar el contenedor → `docker build` → `docker run`. |
+
+---
+
+## 17. Checklist Final de Entrega
+
+- [x] Entendemos qué representa una fila del dataset.
+- [x] Definimos la ruta supervisada.
+- [x] Justificamos las variables una por una.
+- [x] El preprocesamiento está dentro del pipeline.
+- [x] `train.py` corre de principio a fin y regenera `model.joblib` (sección 9.4).
+- [x] `app.py` no reentrena el modelo al arrancar.
+- [x] Probamos Streamlit y la predicción unitaria (sección 8.3).
+- [x] Creamos `requirements.txt`, `Dockerfile` y `.dockerignore`.
+- [x] El repositorio contiene todos los archivos necesarios.
+- [x] `docker build` y `docker run` funcionan y el contenedor queda healthy (sección 9.3).
+- [x] `docker logs` no muestra errores críticos.
+- [x] La prueba cruzada quedó documentada (sección 12.1).
+- [x] Sabemos detener o eliminar la VM para controlar costos (sección 13).
+- [ ] La VM de GCP está creada y accesible por SSH.
+- [ ] La regla de firewall está configurada.
+- [ ] La aplicación abre usando la IP externa.
+
+> Los tres ítems pendientes corresponden a GCP. No los ejecutamos porque la cuenta de facturación exige un prepago o cargo de verificación que no se reembolsa de forma inmediata (sección 10.5).

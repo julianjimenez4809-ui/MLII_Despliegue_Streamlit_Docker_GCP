@@ -1,0 +1,35 @@
+# Entrenamiento reproducible dentro de la imagen Docker
+# Fecha: 2026-11-10
+# Comando: docker run --rm ml-streamlit-app python train.py
+
+Datos: (3150, 14) | objetivo: Churn | excluidas: ['Customer Value', 'Age'] | modelo: random_forest
+
+Validación cruzada (5 folds, media ± desv):
+  logistic_regression: f1_pos=0.5672±0.0217 | recall_pos=0.4404±0.0290 | roc_auc=0.9354±0.0071
+  random_forest: f1_pos=0.8406±0.0226 | recall_pos=0.9414±0.0234 | roc_auc=0.9824±0.0046
+Variables numéricas: ['Call Failure', 'Subscription Length', 'Charge Amount', 'Seconds of Use', 'Frequency of use', 'Frequency of SMS', 'Distinct Called Numbers']
+Variables categóricas: ['Complains', 'Age Group', 'Tariff Plan', 'Status']
+Matriz de confusión (filas=real, columnas=predicho): ['0', '1']
+    [505, 26]
+    [4, 95]
+              precision    recall  f1-score   support
+
+           0       0.99      0.95      0.97       531
+           1       0.79      0.96      0.86        99
+
+    accuracy                           0.95       630
+   macro avg       0.89      0.96      0.92       630
+weighted avg       0.96      0.95      0.95       630
+
+{
+  "accuracy": 0.9524,
+  "balanced_accuracy": 0.9553,
+  "f1_weighted": 0.9543,
+  "recall_macro": 0.9553,
+  "roc_auc": 0.9844,
+  "precision_pos": 0.7851,
+  "recall_pos": 0.9596,
+  "f1_pos": 0.8636,
+  "average_precision": 0.9353
+}
+Modelo guardado en model.joblib

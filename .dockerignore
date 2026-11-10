@@ -8,3 +8,6 @@ __pycache__
 *.zip
 *.pdf
 pdf/
+docs/
+*.ipynb
+src/
