@@ -1,0 +1,4 @@
+=== docker images ===
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+IMAGE                     ID             DISK USAGE   CONTENT SIZE   EXTRA
+ml-streamlit-app:latest   ce44824a9d7a       1.07GB          245MB   U    

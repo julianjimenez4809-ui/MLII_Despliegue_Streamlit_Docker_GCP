@@ -215,6 +215,38 @@ docker ps
 docker logs ml-streamlit
 ```
 
+### 9.3 Evidencia de Construcción y Ejecución (verificada)
+
+Evidencia registrada el **2026-11-10** en un entorno Linux/WSL con Docker 29.1.3:
+
+| Verificación | Resultado |
+|:---|:---|
+| `docker build -t ml-streamlit-app .` | `Successfully tagged ml-streamlit-app:latest` |
+| `docker images ml-streamlit-app` | Imagen creada (≈245 MB de contenido) |
+| `docker ps --filter name=ml-streamlit` | `Up (healthy)`, puerto `0.0.0.0:8501->8501/tcp` |
+| `curl http://127.0.0.1:8501/_stcore/health` | `ok` |
+| Carga del artefacto dentro del contenedor | `sklearn_version_artifact: 1.9.1`, sin `InconsistentVersionWarning` |
+| Paridad numérica del caso de referencia | `parity_diff: 0.0` |
+| Predicción de ejemplo dentro del contenedor | Clase `0`, `P(Y=0)=0.5093`, `P(Y=1)=0.4907` |
+
+Los logs completos están en:
+
+- [`docs/evidencias/docker-build.log`](docs/evidencias/docker-build.log)
+- [`docs/evidencias/docker-images.log`](docs/evidencias/docker-images.log)
+- [`docs/evidencias/docker-run.log`](docs/evidencias/docker-run.log) (incluye `docker ps`, `docker logs` y healthcheck)
+- [`docs/evidencias/docker-model-check.log`](docs/evidencias/docker-model-check.log)
+
+Para reproducir la verificación:
+
+```bash
+docker build -t ml-streamlit-app .
+docker run -d --name ml-streamlit --restart unless-stopped -p 8501:8501 ml-streamlit-app
+sleep 10
+docker ps
+docker logs ml-streamlit
+curl http://127.0.0.1:8501/_stcore/health
+```
+
 ---
 
 ## 10. Despliegue en Google Cloud Platform (Compute Engine)

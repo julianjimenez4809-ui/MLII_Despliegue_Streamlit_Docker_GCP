@@ -1,0 +1,16 @@
+1d0728542e5894439a261c6c518aa7ea3fa794fae58f2ddcdd01963da018655c
+=== docker ps ===
+CONTAINER ID   IMAGE              COMMAND                  CREATED          STATUS                    PORTS                                         NAMES
+1d0728542e58   ml-streamlit-app   "streamlit run app.p…"   11 seconds ago   Up 10 seconds (healthy)   0.0.0.0:8501->8501/tcp, [::]:8501->8501/tcp   ml-streamlit
+=== docker logs ===
+2026-11-10 12:46:22.075 Uvicorn server started on 0.0.0.0:8501
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://172.17.0.2:8501
+  External URL: http://<IP_PUBLICA_REDACTADA>:8501
+
+  Detected WSL. Using poll-based file watching for better compatibility. To force watchdog, set server.fileWatcherType = "watchdog".
+=== health ===
+ok
