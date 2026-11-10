@@ -36,26 +36,33 @@ El proyecto se desarrolla bajo la **Ruta A (Aprendizaje Supervisado - Clasificac
 
 ## 4. Definición y Justificación de Variables
 
-A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz de usuario reciba únicamente información disponible al momento de la toma de decisiones, se aplicó el siguiente esquema de variables:
+A fin de evitar fuga de información (*data leakage*) y asegurar que la interfaz de usuario reciba únicamente información disponible al momento de la toma de decisiones, se aplicó el siguiente esquema de variables. La variable objetivo es `Churn` (1 = abandono, 0 = permanencia), con un desbalance aproximado de 15,7 % positivos / 84,3 % negativos; por eso la partición es estratificada y la evaluación prioriza la clase positiva.
 
 ### 4.1 Variables Predictoras Incluidas
-- **Numéricas Continuas y Discretas:**
-  - `Call Failure`: Frecuencia acumulada de llamadas fallidas.
-  - `Subscription Length`: Duración de la suscripción del cliente (en meses).
-  - `Charge Amount`: Nivel tarifario o categoría de cobro.
-  - `Seconds of Use`: Segundos totales de consumo telefónico.
-  - `Frequency of use`: Número total de llamadas efectuadas.
-  - `Frequency of SMS`: Número total de mensajes de texto enviados.
-  - `Distinct Called Numbers`: Cantidad de números telefónicos distintos contactados.
-- **Categóricas y Discretas de Baja Cardinalidad:**
-  - `Complains`: Presencia de quejas o reclamos formales (0 = No, 1 = Sí).
-  - `Age Group`: Grupo etario del usuario (5 niveles: 1–5).
-  - `Tariff Plan`: Modalidad de plan contratado (1 = Contractual, 2 = Prepago).
-  - `Status`: Estado operativo de la línea telefónica.
+
+| Variable | Tipo | Por qué se incluye | Tratamiento en el pipeline |
+|:---|:---|:---|:---|
+| `Call Failure` | Numérica discreta (conteo) | Frecuencia de llamadas fallidas; mide problemas de red o insatisfacción y es una señal temprana de abandono. | Mediana + estandarización |
+| `Subscription Length` | Numérica (meses) | Antigüedad del cliente; distingue clientes nuevos de clientes con relación establecida. | Mediana + estandarización |
+| `Charge Amount` | Numérica discreta (nivel tarifario) | Nivel de cobro o plan; aproxima el valor económico del cliente. | Mediana + estandarización |
+| `Seconds of Use` | Numérica continua (segundos) | Intensidad de consumo; un mayor uso sugiere dependencia del servicio. | Mediana + estandarización |
+| `Frequency of use` | Numérica discreta (conteo) | Número de llamadas efectuadas; intensidad de la relación con la operadora. | Mediana + estandarización |
+| `Frequency of SMS` | Numérica discreta (conteo) | Uso de mensajes de texto; nivel de *engagement* del cliente. | Mediana + estandarización |
+| `Distinct Called Numbers` | Numérica discreta (conteo) | Diversidad de contactos; tamaño de la red social del cliente. | Mediana + estandarización |
+| `Complains` | Categórica binaria (0/1) | Presencia de queja formal; predictor directo de insatisfacción y churn. | Moda + one-hot |
+| `Age Group` | Categórica ordinal (1–5) | Segmento etario; captura heterogeneidad demográfica en la propensión al abandono. | Moda + one-hot (no se impone orden) |
+| `Tariff Plan` | Categórica nominal (1 = Contractual, 2 = Prepago) | Tipo de plan; el prepago suele asociarse a mayor rotación. | Moda + one-hot |
+| `Status` | Categórica nominal (1, 2) | Estado operativo de la línea; puede reflejar actividad o suspensión del servicio. | Moda + one-hot |
 
 ### 4.2 Variables Excluidas
-- `Customer Value`: Variable compuesta calculada *a posteriori* a partir de métricas agregadas del uso. Su inclusión en el entrenamiento generaría fuga de datos, ya que no representa una variable observable de manera inmediata en clientes nuevos o en escenarios de intervención temprana.
-- `Age`: Presenta una correspondencia **1:1** con `Age Group` (15→1, 25→2, 30→3, 45→4, 55→5). Mantener ambas variables duplicaría exactamente las mismas columnas one-hot sin aportar información, por lo que se conserva únicamente `Age Group`, que es el agrupamiento interpretable.
+
+| Variable | Motivo de exclusión |
+|:---|:---|
+| `Customer Value` | Se calcula *a posteriori* a partir de métricas agregadas de uso. Incluirla generaría fuga de información y no está disponible para un cliente nuevo o en una intervención temprana. |
+| `Age` | Presenta una correspondencia **1:1** con `Age Group` (15→1, 25→2, 30→3, 45→4, 55→5). Mantener ambas duplicaría exactamente las mismas columnas one-hot sin aportar información; se conserva `Age Group`, que es el agrupamiento interpretable. |
+| `Churn` | Es la variable objetivo; no entra como predictor. |
+
+> No se incluyen identificadores porque el dataset no los contiene. Si existieran columnas como `ID` o `Customer ID`, se excluirían para evitar que el modelo memorice clientes en lugar de aprender patrones.
 
 ---
 
